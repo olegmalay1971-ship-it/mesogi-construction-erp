@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>MESOGI Construction ERP · v0.8.5 Build 04.4</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-title">MESOGI</div><div class="brand-subtitle">Construction ERP</div></div>
+    <nav class="nav">
+      <a href="#">Главная</a><a href="#">Объекты</a><a href="#" class="active">Сметы</a><a href="#">Журнал работ</a>
+      <a href="#">Гант</a><a href="#">Закупки</a><a href="#" id="materialsLibraryLink">Материалы</a><a href="#" id="worksLibraryLink">Работы</a>
+      <a href="#">Табель</a><a href="#">Персонал</a><a href="#">Финансы</a><a href="#">Отчёты</a><a href="#">Настройки</a>
+    </nav>
+    <div class="sidebar-footer">ESTUDIO MISOGI<small>Администратор</small></div>
+  </aside>
+  <div class="overlay" id="overlay"></div>
+
+  <main class="main">
+    <header class="mobile-head"><button id="menuBtn">☰</button><div><b>MESOGI</b><small>Construction ERP</small></div><span></span></header>
+
+    <section class="page-head">
+      <div><a href="#" class="back">← Назад к объектам</a><h1 id="projectTitle">Tala Villa</h1><div class="meta" id="projectMeta">EST-2026-015 · Новый клиент · Tala, Paphos</div></div>
+      <div class="actions"><button class="secondary" id="projectBtn">Редактировать объект</button><button class="secondary">Предпросмотр</button><button class="secondary">PDF</button><button class="primary" id="saveBtn">Сохранить</button></div>
+    </section>
+
+    <section class="summary summary-four">
+      <article><span>Работы клиенту</span><strong id="sumWork">0,00 €</strong></article>
+      <article><span>Материалы клиенту</span><strong id="sumMaterials">0,00 €</strong></article>
+      <article class="profit"><span>Прибыль</span><strong id="sumProfit">0,00 €</strong><small id="sumMargin">Фактическая маржа 0%</small></article>
+      <article class="total"><span>Итого клиенту</span><strong id="sumTotal">0,00 €</strong><small id="sumVat">В том числе НДС 0,00 €</small></article>
+    </section>
+
+    <section class="workspace">
+      <div class="tabs"><button class="tab active" data-tab="estimate">Разделы и работы</button><button class="tab" data-tab="materials">Материалы</button></div>
+
+      <div id="estimateTab">
+        <div class="toolbar"><button class="primary" id="addSectionBtn">+ Добавить раздел</button><span id="sectionCount">0 разделов</span><div class="spacer"></div><input id="search" placeholder="Поиск в смете..."></div>
+        <div id="estimateList" class="estimate-list"></div>
+        <div id="emptyState" class="empty"><b>Смета пока пустая</b><span>Добавьте первый раздел, затем выберите работу из этого раздела.</span></div>
+      </div>
+
+      <div id="materialsTab" class="hidden panel-pad">
+        <div class="materials-head"><div><h2>Материалы сметы</h2><p>Цена закупки указывается с НДС. Цена клиенту рассчитывается по марже материала.</p></div></div>
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>Материал</th><th>Кол-во</th><th>Ед.</th><th>Закупка с НДС / ед.</th><th>Маржа</th><th>Цена клиенту / ед.</th><th>Итого клиенту</th></tr></thead><tbody id="materialsBody"></tbody></table></div>
+        <div class="empty" id="materialsEmpty"><b>Материалы ещё не добавлены</b><span>Они появятся здесь после добавления к работе.</span></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="bottom"><a>Главная</a><a>Объекты</a><a class="active">Сметы</a><a>Журнал</a><button id="moreBtn">Ещё</button></nav>
+
+<div class="modal" id="sectionModal"><div class="modal-card small"><div class="modal-head"><h2>Добавить раздел</h2><button data-close>×</button></div><div class="option-list" id="sectionOptions"></div></div></div>
+
+<div class="modal" id="workModal"><div class="modal-card wide"><div class="modal-head"><div><h2 id="workModalTitle">Добавить работу</h2><p id="workSectionName"></p></div><button data-close>×</button></div>
+  <div class="work-layout simplified-work-layout">
+    <div class="catalog"><div class="catalog-tabs"><button class="active">Из справочника</button><button id="manualWorkBtn">Вручную</button></div><input id="workSearch" placeholder="Поиск работы..."><div id="workCatalog"></div></div>
+    <form id="workForm" class="form">
+      <input type="hidden" id="workSectionId">
+      <h3>Работа</h3>
+      <label>Наименование<input id="workName" required></label>
+      <div class="grid2"><label>Количество<input id="workQty" type="number" min="0" step="0.01" value="1"></label><label>Ед. изм.<select id="workUnit"><option>м²</option><option>м³</option><option>м.п.</option><option>шт</option><option>комплект</option><option>точка</option><option>день</option><option>час</option><option>рейс</option><option>тонна</option><option>кг</option><option>мешок</option><option>литр</option></select></label></div>
+      <div class="block"><div class="block-title">Стоимость работы</div><div class="grid3"><label>Себестоимость / ед.<input id="workCost" type="number" min="0" step="0.01" value="0"></label><label>Маржа, %<input id="workMargin" type="number" step="0.01" value="25"></label><label>Цена клиенту / ед. без НДС<input id="workSell" type="number" min="0" step="0.01" value="0"></label></div></div>
+      <div class="block"><div class="block-title">Материал к этой работе <small>(необязательно)</small></div>
+        <label>Материал из справочника<select id="materialLibrarySelect"></select></label>
+        <div class="grid2"><label>Количество<input id="materialQty" type="number" min="0" step="0.01" value="0"></label><label>Ед. изм.<select id="materialUnit"><option>мешок</option><option>шт</option><option>кг</option><option>литр</option><option>м²</option><option>м.п.</option><option>комплект</option></select></label></div>
+        <div class="grid3"><label>Закупка с НДС / ед.<input id="buyInc" type="number" min="0" step="0.01" value="0"></label><label>Маржа материала, %<input id="materialMargin" type="number" step="0.01" value="0"></label><label>Цена клиенту / ед. с НДС<input id="sellInc" type="number" min="0" step="0.01" value="0"></label></div>
+      </div>
+      <label>Комментарий<textarea id="workComment" rows="2" placeholder="Необязательно"></textarea></label>
+      <div class="modal-actions"><button type="button" class="secondary" data-close>Отмена</button><button type="submit" class="primary" id="workSubmitBtn">Добавить работу</button></div>
+    </form>
+  </div>
+</div></div>
+
+<div class="modal" id="projectModal"><div class="modal-card small"><div class="modal-head"><h2>Редактировать объект</h2><button data-close>×</button></div><form class="form" id="projectForm"><label>Компания<input id="projectCompany" value="ESTUDIO MISOGI"></label><label>Название объекта<input id="projectName" value="Tala Villa"></label><label>Клиент<input id="projectClient" value="Новый клиент"></label><label>Адрес<input id="projectAddress" value="Tala, Paphos"></label><label>Маржа работы по умолчанию, %<input id="projectMargin" value="25" type="number"></label><div class="modal-actions"><button type="button" class="secondary" data-close>Закрыть</button><button class="primary">Сохранить</button></div></form></div></div>
+
+<div class="modal" id="worksLibraryModal"><div class="modal-card wide"><div class="modal-head"><div><h2>Справочник работ</h2><p>Раздел сметы → работа. Изменения влияют только на новые строки смет.</p></div><button data-close>×</button></div><div class="panel-pad"><div class="library-toolbar"><input id="worksLibrarySearch" placeholder="Поиск работы..."><button class="primary" id="addLibraryWorkBtn">+ Добавить работу</button></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Раздел</th><th>Работа</th><th>Ед.</th><th>Цена клиенту</th><th>Статус</th></tr></thead><tbody id="worksLibraryBody"></tbody></table></div></div></div></div>
+
+<div class="modal" id="materialsLibraryModal"><div class="modal-card wide"><div class="modal-head"><div><h2>Справочник материалов</h2><p>Закупочная цена хранится с НДС. Старые строки смет не изменяются.</p></div><button data-close>×</button></div><div class="panel-pad"><div class="library-toolbar"><input id="materialsLibrarySearch" placeholder="Поиск материала..."><button class="primary" id="addLibraryMaterialBtn">+ Добавить материал</button></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Категория</th><th>Материал</th><th>Ед.</th><th>Закупка с НДС</th><th>Поставщик</th><th>Действует с</th><th>Статус</th></tr></thead><tbody id="materialsLibraryBody"></tbody></table></div></div></div></div>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body></html>
