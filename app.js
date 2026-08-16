@@ -153,3 +153,4 @@ $('#workLogLink').onclick=e=>{e.preventDefault();openWorkLog()};
 $('#settingsLink').onclick=e=>{e.preventDefault();openSyncSettings()};
 window.addEventListener('online',flushMaterialQueue);
 restore();render();loadMaterialsFromGoogle();loadWorksFromGoogle();loadWorkLogFromGoogle();
+
