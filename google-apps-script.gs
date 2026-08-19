@@ -6,6 +6,8 @@
 const MATERIALS_SHEET = 'Материалы';
 const WORK_LOG_SHEET = 'Журнал работ';
 const WORKS_SHEET = 'Работы';
+const ESTIMATES_SHEET = 'Сметы';
+const ESTIMATE_LINES_SHEET = 'Строки смет';
 
 function doGet(e) {
   const request = e && e.parameter ? e.parameter : {};
@@ -56,10 +58,66 @@ function doGet(e) {
 function doPost(e) {
   const request = JSON.parse((e && e.postData && e.postData.contents) || '{}');
   authorize_(request.token);
+  if (request.action === 'upsertEstimate' && request.estimate) return upsertEstimate_(request.estimate, request.estimateSheetId);
   if (request.action === 'upsertWorkLog' && request.entry) return upsertWorkLog_(request.entry);
   if (request.action === 'upsertWork' && request.work) return upsertWork_(request.work);
   if (request.action !== 'upsertMaterial' || !request.material) return json_({ error: 'Unknown action' });
   return upsertMaterial_(request.material);
+}
+
+function estimatesSpreadsheet_(requestedId) {
+  const id = String(requestedId || PropertiesService.getScriptProperties().getProperty('ESTIMATES_SPREADSHEET_ID') || '').trim();
+  if (!id) throw new Error('Set estimate spreadsheet ID in application Settings');
+  return SpreadsheetApp.openById(id);
+}
+
+function ensureEstimateSheet_(spreadsheet, name, headers) {
+  let sheet = spreadsheet.getSheetByName(name);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(name);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function upsertEstimate_(estimate, requestedId) {
+  const spreadsheet = estimatesSpreadsheet_(requestedId);
+  const summary = ensureEstimateSheet_(spreadsheet, ESTIMATES_SHEET, [
+    'ID', 'Номер сметы', 'Объект', 'Клиент', 'Адрес', 'Статус', 'Маржа по умолчанию, %',
+    'Работы клиенту', 'Материалы клиенту', 'Итого клиенту', 'НДС', 'Прибыль', 'Создано', 'Обновлено', 'Снимок JSON'
+  ]);
+  const lines = ensureEstimateSheet_(spreadsheet, ESTIMATE_LINES_SHEET, [
+    'ID строки', 'ID сметы', 'Раздел', 'Работа', 'Ед.', 'Количество', 'Себестоимость / ед.', 'Маржа, %',
+    'Цена клиенту / ед.', 'Материалы JSON', 'Комментарий', 'Обновлено'
+  ]);
+  const id = String(estimate.id || estimate.estimateNo || `EST-${Date.now()}`);
+  const project = estimate.project || {};
+  const totals = estimate.totals || {};
+  const now = new Date().toISOString();
+  const last = Math.max(summary.getLastRow(), 1);
+  const ids = last > 1 ? summary.getRange(2, 1, last - 1, 1).getValues().flat() : [];
+  const match = ids.findIndex(value => String(value) === id);
+  const row = match >= 0 ? match + 2 : last + 1;
+  const created = match >= 0 ? summary.getRange(row, 13).getValue() : now;
+  summary.getRange(row, 1, 1, 15).setValues([[
+    id, estimate.estimateNo || id, project.name || '', project.client || '', project.address || '', 'Черновик',
+    number_(project.defaultMargin), round2_(totals.work), round2_(totals.materials), round2_(totals.total),
+    round2_(totals.vat), round2_(totals.profit), created || now, now, JSON.stringify(estimate)
+  ]]);
+
+  const lineLast = lines.getLastRow();
+  if (lineLast > 1) {
+    const existing = lines.getRange(2, 1, lineLast - 1, 2).getValues();
+    for (let i = existing.length - 1; i >= 0; i--) if (String(existing[i][1]) === id) lines.deleteRow(i + 2);
+  }
+  const rows = [];
+  (estimate.sections || []).forEach(section => (section.works || []).forEach(work => rows.push([
+    `${id}:${work.id || Utilities.getUuid()}`, id, section.name || '', work.name || '', work.unit || '', number_(work.qty),
+    number_(work.workCost), number_(work.workMargin), number_(work.workSell), JSON.stringify(work.materials || []), work.comment || '', now
+  ])));
+  if (rows.length) lines.getRange(lines.getLastRow() + 1, 1, rows.length, 12).setValues(rows);
+  return json_({ ok: true, id: id });
 }
 
 function upsertMaterial_(material, callback) {
